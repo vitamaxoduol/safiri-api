@@ -7,4 +7,6 @@ from flask_jwt_extended import JWTManager
 
 migrate = Migrate()
 socketio = SocketIO(cors_allowed_origins="*")
+# CORS configurations
+# CORS_ORIGINS = ['http://localhost:3000']
 jwt = JWTManager()
