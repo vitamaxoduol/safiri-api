@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt_claims
 from functools import wraps
-# from models import Users
+from models import Users
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Mock user database
@@ -12,19 +12,49 @@ users = {
 }
 
 def auth_routes(app, db):
+    # Register route for passengers
+    @app.route('/apis/v1/register/passenger', methods=['POST'])
+    def register_passenger():
+        try:
+            data = request.json
+            # Check if required fields are present in the request
+            if 'first_name' not in data or 'last_name' not in data or 'phone_number' not in data or 'password' not in data:
+                return jsonify({'message': 'Missing required fields'}), 400
+            # Generate a hashed password
+            password_hash = generate_password_hash(data['password'])
+            # Create a new user instance for the passenger
+            passenger = Users(
+                first_name=data['first_name'],
+                last_name=data['last_name'],
+                username=data.get('username'),  # Username can be optional
+                phone_number=data['phone_number'],
+                password_hash=password_hash
+            )
+            # Add the user to the database
+            db.session.add(passenger)
+            db.session.commit()
+            return jsonify({'message': 'Passenger registered successfully'}), 201
+        except Exception as e:
+            return jsonify({'message': 'An error occurred while processing your request'}), 500
+
     # User login endpoint
-    @app.route('/login', methods=['POST'])
+    @app.route('/apis/v1/user/login', methods=['POST'])
     def login():
         try:
-            data = request.get_json()
-            username = data.get('username')
-            password = data.get('password')
-            user = users.get(username)
-            if not user or not check_password_hash(user['password'], password):
-                return jsonify({'message': 'Invalid username or password'}), 401
-            # Generate JWT token with user's role as a claim
-            access_token = create_access_token(identity=username, additional_claims={'role': user['role']})
-            return jsonify({'access_token': access_token, 'role': user['role']}), 200
+            data = request.json
+            # Check if the login request contains a username or phone number
+            if 'username' in data:
+                user = Users.query.filter_by(username=data['username']).first()
+            elif 'phone_number' in data:
+                user = Users.query.filter_by(phone_number=data['phone_number']).first()
+            else:
+                return jsonify({'message': 'Missing username or phone number'}), 400
+            # Verify password and return access token if login successful
+            if user and check_password_hash(user.password_hash, data['password']):
+                access_token = create_access_token(identity=user.id)
+                return jsonify({'access_token': access_token}), 200
+            else:
+                return jsonify({'message': 'Invalid credentials'}), 401
         except Exception as e:
             return jsonify({'message': 'An error occurred while processing your request'}), 500
 
@@ -40,7 +70,7 @@ def auth_routes(app, db):
             return wrapper
         return decorator
 
-    @app.route('/passenger/dashboard')
+    @app.route('/apis/v1/passenger/dashboard')
     @jwt_required()
     @role_required('passenger')
     def passenger_dashboard():
@@ -48,7 +78,7 @@ def auth_routes(app, db):
         current_user = get_jwt_identity()
         return jsonify({'message': f'Passenger dashboard data for {current_user}'}), 200
 
-    @app.route('/manager/dashboard')
+    @app.route('/apis/v1/manager/dashboard')
     @jwt_required()
     @role_required('business manager')
     def manager_dashboard():
@@ -56,7 +86,7 @@ def auth_routes(app, db):
         current_user = get_jwt_identity()
         return jsonify({'message': f'Manager dashboard data for {current_user}'}), 200
 
-    @app.route('/admin/dashboard')
+    @app.route('/apis/v1/admin/dashboard')
     @jwt_required()
     @role_required('Intasend admin')
     def admin_dashboard():

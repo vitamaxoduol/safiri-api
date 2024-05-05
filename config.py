@@ -1,12 +1,15 @@
 import os
+import dotenv
+dotenv.load_dotenv()
+
 
 
 
 
 class Config:
     # Flask app configurations
-    SECRET_KEY = 'your_secret_key_here'  # Change this to a random secret key
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///your_database.db'  # Change this to your database URI
+    SECRET_KEY = os.environ['SECRET_KEY']
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///safiri.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # JWT configurations
@@ -16,4 +19,5 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = 3600 
 
     # Socket.IO configurations
-    SOCKETIO_MESSAGE_QUEUE = 'redis://localhost:6379/0'  # Redis message queue for Socket.IO
+    SOCKETIO_MESSAGE_QUEUE = 'redis://localhost:6379/0' # Redis message queue for Socket.IO
+
