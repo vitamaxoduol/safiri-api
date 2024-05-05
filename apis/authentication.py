@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt_claims
 from functools import wraps
-from models import Users  # Import your Users model
+# from models import Users
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Mock user database
