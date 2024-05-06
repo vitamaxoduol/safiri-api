@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from functools import wraps
-from models import Users
+from models.users import Users
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Mock user database
@@ -59,16 +59,18 @@ def auth_routes(app, db):
             return jsonify({'message': 'An error occurred while processing your request'}), 500
 
     # Protected routes by role
-    def role_required(required_role):
-        def decorator(func):
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                claims = get_jwt_claims()
-                if claims['role'] != required_role:
-                    return jsonify({'message': 'Insufficient permissions'}), 403
-                return func(*args, **kwargs)
-            return wrapper
-        return decorator
+def role_required(required_role):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            jwt_data = get_jwt()
+            if 'role' not in jwt_data:
+                return jsonify({'message': 'JWT token does not contain role information'}), 401
+            if jwt_data['role'] != required_role:
+                return jsonify({'message': 'Insufficient permissions'}), 403
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
     @app.route('/apis/v1/passenger/dashboard')
     @jwt_required()

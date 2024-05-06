@@ -31,11 +31,8 @@ jwt.init_app(app)
 if __name__ == '__main__':
     with app.app_context():
         register_routes(app, db, socketio)
-        db.create_all()
         socketio.run(app, debug=True, host="0.0.0.0")
-
         jwt_key = current_app.config['JWT_SECRET_KEY']
-        register_routes(app, db, socketio)
         db.create_all()
         print("Initializing Socket.IO server...")
         socketio.init_app(app)
