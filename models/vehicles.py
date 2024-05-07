@@ -10,6 +10,7 @@ class Vehicles(db.Model):
     current_location = db.Column(db.String(100))
     status = db.Column(db.String(20))
     bookings = db.relationship("Bookings", back_populates="vehicle")
+    routes = db.relationship("Routes", secondary="bookings", backref="vehicles")
 
     def __init__(self, vehicle_number, vehicle_type, current_location, status):
         self.vehicle_number = vehicle_number
