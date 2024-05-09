@@ -3,6 +3,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from functools import wraps
 from models.users import Users
 from werkzeug.security import generate_password_hash, check_password_hash
+import logging
 
 # Mock user database
 users = {
@@ -12,29 +13,43 @@ users = {
 }
 
 def auth_routes(app, db):
+    # Create logger
+    logger = logging.getLogger(__name__)
+
     # Register route for passengers
     @app.route('/apis/v1/register/passenger', methods=['POST'])
     def register_passenger():
         try:
             data = request.json
+            logger.info(f'Received registration request: {data}')  # Log received data
             # Check if required fields are present in the request
-            if 'first_name' not in data or 'last_name' not in data or 'phone_number' not in data or 'password' not in data:
+            if 'first_name' not in data or 'last_name' not in data or 'email' not in data or 'phone_number' not in data or 'password' not in data:
+                logger.error('Missing required fields')  # Log error
                 return jsonify({'message': 'Missing required fields'}), 400
+            
+            # Check if user with the provided email already exists
+            existing_user = Users.query.filter_by(email=data['email']).first()
+            if existing_user:
+                logger.info('User with this email already exists')  # Log message
+                return jsonify({'message': 'User with this email already exists'}), 409
+            
             # Generate a hashed password
             password_hash = generate_password_hash(data['password'])
             # Create a new user instance for the passenger
             passenger = Users(
                 first_name=data['first_name'],
                 last_name=data['last_name'],
-                username=data.get('username'),  # Username can be optional
+                email=data['email'],
                 phone_number=data['phone_number'],
                 password_hash=password_hash
             )
             # Add the user to the database
             db.session.add(passenger)
             db.session.commit()
+            logger.info('Passenger registered successfully')  # Log success
             return jsonify({'message': 'Passenger registered successfully'}), 201
         except Exception as e:
+            logger.error(f'Error processing registration request: {e}')  # Log error with exception
             return jsonify({'message': 'An error occurred while processing your request'}), 500
 
     # User login endpoint
